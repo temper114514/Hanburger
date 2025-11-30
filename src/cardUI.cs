@@ -1,79 +1,53 @@
+// CardUI.cs
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
-public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class CardUI : MonoBehaviour
 {
-    [Header("动效参数")]
-    public float hoverScale = 1.2f;
-    public float hoverDuration = 0.2f;
-    public Vector3 hoverOffset = new Vector3(0, 20, 0);
+    public Image cardImage;
+    public Text cardNameText;
 
-    private RectTransform rect;
-    private Vector3 originalLocalPos;
-    private Vector3 originalLocalScale;
-    private bool isHovering = false;
+    private CardData data;
+    private bool isSelected = false;
 
-    void Awake()
+    // 视觉反馈参数
+    public Color normalColor = Color.white;
+    public Color selectedColor = Color.yellow;
+    public float scaleNormal = 1f;
+    public float scaleSelected = 1.1f;
+    public float animDuration = 0.2f;
+
+    public void Initialize(CardData card)
     {
-        rect = GetComponent<RectTransform>();
-        originalLocalPos = rect.localPosition;
-        originalLocalScale = rect.localScale;
+        data = card;
+        cardImage.sprite = card.artwork;
+        cardNameText.text = card.cardName;
+        Deselect(); // 默认未选中
     }
 
-    public void Initialize(int cardId)
+    public void OnCardClicked()
     {
-        // 示例：根据 cardId 设置卡面图片、名称等
-        // GetComponent<Image>().sprite = CardDatabase.GetSprite(cardId);
+        isSelected = !isSelected;
+        if (isSelected)
+            Select();
+        else
+            Deselect();
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
+    private void Select()
     {
-        if (isHovering) return; // 防止快速进出导致协程堆积
-        isHovering = true;
-        StopAllCoroutines();
-        StartCoroutine(HoverIn());
+        LeanTween.cancel(gameObject);
+        LeanTween.scale(gameObject, Vector3.one * scaleSelected, animDuration).setEase(LeanTween.easeOutCubic);
+        cardImage.color = selectedCcolor;
     }
 
-    public void OnPointerExit(PointerEventData eventData)
+    private void Deselect()
     {
-        isHovering = false;
-        StopAllCoroutines();
-        StartCoroutine(HoverOut());
+        LeanTween.cancel(gameObject);
+        LeanTween.scale(gameObject, Vector3.one * scaleNormal, animDuration).setEase(LeanTween.easeOutCubic);
+        cardImage.color = normalColor;
     }
 
-    IEnumerator HoverIn()
-    {
-        float elapsed = 0f;
-        Vector3 startScale = rect.localScale;
-        Vector3 startPos = rect.localPosition;
-        Vector3 targetScale = originalLocalScale * hoverScale;
-        Vector3 targetPos = originalLocalPos + hoverOffset;
-
-        while (elapsed < hoverDuration)
-        {
-            rect.localScale = Vector3.Lerp(startScale, targetScale, elapsed / hoverDuration);
-            rect.localPosition = Vector3.Lerp(startPos, targetPos, elapsed / hoverDuration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        rect.localScale = targetScale;
-        rect.localPosition = targetPos;
-    }
-
-    IEnumerator HoverOut()
-    {
-        float elapsed = 0f;
-        Vector3 startScale = rect.localScale;
-        Vector3 startPos = rect.localPosition;
-
-        while (elapsed < hoverDuration)
-        {
-            rect.localScale = Vector3.Lerp(startScale, originalLocalScale, elapsed / hoverDuration);
-            rect.localPosition = Vector3.Lerp(startPos, originalLocalPos, elapsed / hoverDuration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        rect.localScale = originalLocalScale;
-        rect.localPosition = originalLocalPos;
-    }
+    // 可选：添加事件回调
+    public System.Action<CardUI> OnSelected;
 }
